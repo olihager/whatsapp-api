@@ -6,6 +6,11 @@ const apiRoute = require("./routes/routes");
 
 const app = express();
 
+// 👇 Test route for root path
+app.get('/', (req, res) => {
+  res.send('Server is running!');
+});
+
 const PORT = process.env.PORT || 3000; 
 
 app.use(express.json());
