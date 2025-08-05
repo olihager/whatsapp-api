@@ -1,3 +1,7 @@
+const fs = require("fs");
+const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
+
+
 console.log("✅ THIS IS THE CLEANED CONTROLLER");
 
 const verifyToken = (req, res) => {
@@ -23,8 +27,22 @@ try {
 };
 
 const messageReceived = (req, res) => {
-  res.send("✅ POST received yes yes");
-};
+  try{
+    var entry = (req.body["entry"])[0];
+    var changes = (entry["changes"])[0];
+    var value = changes["value"];
+    var messageObject = value["messages"];
+
+    myConsole.log(messageObject);
+
+    res.send("Event Received");
+  }catch(e){
+    myConsole.log(e);
+    res.send("Event Received");
+
+  }
+  
+  };
 
 module.exports = {
   verifyToken,
