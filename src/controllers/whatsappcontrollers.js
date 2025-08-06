@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { title } = require("process");
 const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
 
 
@@ -37,8 +38,9 @@ const messageReceived = (req, res) => {
     console.log("✅ Webhook triggered");
     console.log(JSON.stringify(messageObject, null, 2));
 
-    myConsole.log(messageObject);
-
+    var message = messageObject[0];
+    var text = GetTestUser(messages);
+    console.log(text);
     res.send("Event Received");
   }catch(e){
     myConsole.log(e);
@@ -47,6 +49,44 @@ const messageReceived = (req, res) => {
   }
   
   };
+
+
+
+  function GetTestUser(messages) {
+    var text = "";
+    var typeMessage = messages["type"];
+
+    if (typeMessage == text) {
+
+      text = (messages["text"])["body"];
+
+    } else if(typeMessage == "interactive") {
+      var interactiveObject = messages["interactive"];
+      var typeInteractive = interactiveObject["type"];
+      myConsole.log(interactiveObject);
+      console.log(interactiveObject); 
+
+      if(typeInteractive == "button_reply"){
+
+        text = (interactiveObject[button_reply])[title];
+
+      }else if(typeInteractive == "list_reply") {
+
+        
+        text = (interactiveObject[list_reply])[title];
+
+      } else {
+        
+        myConsole.log("sin mensaje");
+        console.log("sin mensaje");
+      }
+
+    } else {
+        myConsole.log("sin mensaje");
+        console.log("sin mensaje");
+    }
+    return text;
+  } 
 
 module.exports = {
   verifyToken,
