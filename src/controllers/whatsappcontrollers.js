@@ -38,7 +38,7 @@ const messageReceived = (req, res) => {
     console.log("✅ Webhook triggered");
     console.log(JSON.stringify(messageObject, null, 2));
 
-    var message = messageObject[0];
+    var messages = messageObject[0];
     var text = GetTestUser(messages);
     console.log(text);
     res.send("Event Received");
