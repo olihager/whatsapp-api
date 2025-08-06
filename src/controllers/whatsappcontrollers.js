@@ -37,8 +37,14 @@ const messageReceived = (req, res) => {
 
     console.log("📦 Full message object:", JSON.stringify(messages, null, 2));
 
-    const text = GetTestUser(messages);
-    console.log("✅ Final extracted text:", text);
+    
+    if (typeof messageObject != "undefined") {
+
+      const messages = messageObject[0];
+      const text = GetTestUser(messages);
+      console.log("✅ Final extracted text:", text);  
+  }
+    
 
     
     res.send("Event Received");
