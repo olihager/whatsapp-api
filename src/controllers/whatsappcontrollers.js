@@ -68,12 +68,12 @@ const messageReceived = (req, res) => {
 
       if(typeInteractive == "button_reply"){
 
-        text = (interactiveObject[button_reply])[title];
+        text = (interactiveObject["button_reply"])[title];
 
       }else if(typeInteractive == "list_reply") {
 
         
-        text = (interactiveObject[list_reply])[title];
+        text = (interactiveObject["list_reply"])[title];
 
       } else {
         
