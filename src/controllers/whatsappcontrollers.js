@@ -33,6 +33,10 @@ const messageReceived = (req, res) => {
     var value = changes["value"];
     var messageObject = value["messages"];
 
+    // ✅ Shows up in Render dashboard
+    console.log("✅ Webhook triggered");
+    console.log(JSON.stringify(messageObject, null, 2));
+
     myConsole.log(messageObject);
 
     res.send("Event Received");
