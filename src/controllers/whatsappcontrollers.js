@@ -56,21 +56,21 @@ const messageReceived = (req, res) => {
     var text = "";
     var typeMessage = messages["type"];
 
-    if (typeMessage == text) {
+    if (typeMessage === text) {
 
       text = (messages["text"])["body"];
 
-    } else if(typeMessage == "interactive") {
+    } else if(typeMessage === "interactive") {
       var interactiveObject = messages["interactive"];
       var typeInteractive = interactiveObject["type"];
       myConsole.log(interactiveObject);
       console.log(interactiveObject); 
 
-      if(typeInteractive == "button_reply"){
+      if(typeInteractive === "button_reply"){
 
         text = (interactiveObject["button_reply"])[title];
 
-      }else if(typeInteractive == "list_reply") {
+      }else if(typeInteractive === "list_reply") {
 
         
         text = (interactiveObject["list_reply"])[title];
