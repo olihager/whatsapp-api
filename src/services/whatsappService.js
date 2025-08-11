@@ -40,9 +40,7 @@ const options = {
         req.end(); 
     }*/
 
-    module.exports = {
-        sendMessageWhatsApp
-    } 
+ 
 
     const https = require("https");
 
@@ -85,3 +83,8 @@ function sendMessageWhatsApp(textResponse, number) {
   req.write(data);
   req.end();
 }
+    }
+
+   module.exports = {
+        sendMessageWhatsApp
+    } 
