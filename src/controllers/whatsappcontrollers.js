@@ -46,6 +46,14 @@ const messageReceived = (req, res) => {
       const messages = messageObject[0];
       const text = GetTestUser(messages);
       var number = messages["from"];
+
+      // 🔹 START: Added number normalization for Argentina
+      if (number.startsWith("54") && !number.startsWith("549")) {
+        number = "549" + number.slice(2);
+      }
+      console.log("📤 Sending normalized number:", number);
+      // 🔹 END: Added number normalization for Argentina
+
       console.log("✅ Final extracted text:", text); 
       whatsappService.sendMessageWhatsApp("el usuario dijo " + text, number); 
   }
