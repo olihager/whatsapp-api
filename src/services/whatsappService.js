@@ -20,7 +20,7 @@ const { type } = require("os");
         body: data,
         headers: {
             "Content-Type":"application/json",
-            Authorization: "Bearer EAASLem8mvQwBPILeqwPrmqW49ZAWZBfuVdkPmlfi6jHp20LZCK4Vt7FFGlOTxSM1SZC27FfC7NrrZAomdu6mrhEVVzYX3bvYTifYRq6gwwuD0EH2HaHSZAyDAKvXibNHI6D4FdBoQrOZBSGEcbclLERPC4ZAkXBwTBuMdDrEzZBxSMDmZBcZByuXiFe6i4VblU5zSJs3ZCtAbeMHaDXLZABIk9n9WKrHJZCbVOSwVc8as4vAjHn3YZD" 
+            Authorization: "Bearer EAASLem8mvQwBPJBa2kH5Q6A4k62PZC0us07aZCtv5pMUPf4SXTMNAOGZBZC8tjWLbMZBdispl0lu5NEOcJ36GL2vAvXSVHezAENaRpAwX6ZAYCBPbSJ9KKobod5GsrjStdDrbaCUPUVCGTz2Xvv7wSsdlQx10rnMtbdqZBK2PauKs5mWZALZBOmcso0zAdFpwGACvRDpCqZB0dy5Frm80jZCJacriJGvBHs6AMkskoTuHrobK8ZD" 
         }
     };
 
