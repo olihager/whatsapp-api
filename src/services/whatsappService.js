@@ -4,7 +4,7 @@ const { type } = require("os");
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
-    function sendMessageWhatsApp(textResponse, number) {
+ /*   function sendMessageWhatsApp(textResponse, number) {
 
         const data = JSON.stringify( {
     "messaging_product": "whatsapp",    
@@ -16,7 +16,7 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
         "body": textResponse
     }});
 
-const options = {
+/*const options = {
     host: "graph.facebook.com",
     path: `/v22.0/${PHONE_NUMBER_ID}/messages`,
     method: "POST",
@@ -83,7 +83,7 @@ function sendMessageWhatsApp(textResponse, number) {
   req.write(data);
   req.end();
 }
-    }
+    
 
    module.exports = {
         sendMessageWhatsApp
