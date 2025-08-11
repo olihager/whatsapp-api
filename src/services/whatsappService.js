@@ -42,7 +42,7 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
  
 
-    const https = require("https");
+   // const https = require("https");
 
 function sendMessageWhatsApp(textResponse, number) {
   const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
