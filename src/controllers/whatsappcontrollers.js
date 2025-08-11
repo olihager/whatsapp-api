@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { title } = require("process");
 const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
-
+const whatsappService = require("../services/whatsappService");
 
 console.log("✅ THIS IS THE CLEANED CONTROLLER");
 
@@ -42,7 +42,9 @@ const messageReceived = (req, res) => {
 
       const messages = messageObject[0];
       const text = GetTestUser(messages);
-      console.log("✅ Final extracted text:", text);  
+      var number = messages["from"];
+      console.log("✅ Final extracted text:", text); 
+      whatsappService.sendMessageWhatsApp("el usuario dijo " + text, number); 
   }
     
 
@@ -56,43 +58,6 @@ const messageReceived = (req, res) => {
   
   };
 
-
-
- /* function GetTestUser(messages) {
-    var text = "";
-    var typeMessage = messages["type"];
-
-    if (typeMessage === text) {
-
-      text = (messages["text"])["body"];
-
-    } else if(typeMessage === "interactive") {
-      var interactiveObject = messages["interactive"];
-      var typeInteractive = interactiveObject["type"];
-      myConsole.log(interactiveObject);
-      console.log(interactiveObject); 
-
-      if(typeInteractive === "button_reply"){
-
-        text = (interactiveObject["button_reply"])[title];
-
-      }else if(typeInteractive === "list_reply") {
-
-        
-        text = (interactiveObject["list_reply"])[title];
-
-      } else {
-        
-        myConsole.log("sin mensaje");
-        console.log("sin mensaje");
-      }
-
-    } else {
-        myConsole.log("sin mensaje");
-        console.log("sin mensaje");
-    }
-    return text;
-  }*/ 
 
 
   function GetTestUser(messages) {
