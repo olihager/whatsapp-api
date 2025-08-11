@@ -18,7 +18,7 @@ const { type } = require("os");
         path: "/v22.0/658914070648187/messages",
         method: "POST",
         body: data,
-        header: {
+        headers: {
             "Content-Type":"application-json",
             Authorization: "Bearer EAASLem8mvQwBPILeqwPrmqW49ZAWZBfuVdkPmlfi6jHp20LZCK4Vt7FFGlOTxSM1SZC27FfC7NrrZAomdu6mrhEVVzYX3bvYTifYRq6gwwuD0EH2HaHSZAyDAKvXibNHI6D4FdBoQrOZBSGEcbclLERPC4ZAkXBwTBuMdDrEzZBxSMDmZBcZByuXiFe6i4VblU5zSJs3ZCtAbeMHaDXLZABIk9n9WKrHJZCbVOSwVc8as4vAjHn3YZD" 
         }
