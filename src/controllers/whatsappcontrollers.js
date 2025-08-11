@@ -10,11 +10,11 @@ const verifyToken = (req, res) => {
 
             try {
 
-              var accessToken = "ringoringo1232";
+              const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
               var token = req.query["hub.verify_token"];
               var challenge = req.query["hub.challenge"];
 
-              if (challenge != null && token != null && token == accessToken){
+              if (challenge != null && token != null && token === VERIFY_TOKEN){
                 res.send(challenge);
               }else {
                 res.status(400).send();
@@ -28,6 +28,9 @@ const verifyToken = (req, res) => {
 };
 
 const messageReceived = (req, res) => {
+   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
+  console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
+  
   try{
     var entry = (req.body["entry"])[0];
     var changes = (entry["changes"])[0];
