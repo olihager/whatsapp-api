@@ -46,11 +46,11 @@ const messageReceived = (req, res) => {
       const messages = messageObject[0];
       const text = GetTestUser(messages);
       var number = messages["from"];
+      // Original number from incoming message
+      let number = messages["from"];
 
-      // 🔹 START: Added number normalization for Argentina
-      if (number.startsWith("54") && !number.startsWith("549")) {
-        number = "549" + number.slice(2);
-      }
+      // ✅ Force to specific number for testing
+      number = "54111558827024";
       console.log("📤 Sending normalized number:", number);
       // 🔹 END: Added number normalization for Argentina
 
