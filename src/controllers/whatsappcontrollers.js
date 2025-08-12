@@ -47,7 +47,7 @@ const messageReceived = (req, res) => {
       const text = GetTestUser(messages);
       var number = messages["from"];
       // Original number from incoming message
-      let number = messages["from"];
+      number = messages["from"];
 
       // ✅ Force to specific number for testing
       number = "54111558827024";
