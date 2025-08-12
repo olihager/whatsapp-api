@@ -50,7 +50,7 @@ const messageReceived = (req, res) => {
       number = messages["from"];
 
       // ✅ Force to specific number for testing
-      number = "54111558827024";
+      number = "541158827024";
       console.log("📤 Sending normalized number:", number);
       // 🔹 END: Added number normalization for Argentina
 
