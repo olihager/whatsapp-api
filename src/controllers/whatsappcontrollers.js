@@ -5,73 +5,71 @@ const whatsappService = require("../services/whatsappService");
 
 console.log("✅ THIS IS THE CLEANED CONTROLLER");
 
+// 🔹 Helper to normalize Argentine numbers by removing the "9" after country code
+function stripNineForArgentina(number) {
+  let n = (number || "").replace(/\D/g, ""); // keep only digits
+  if (!n) return n;
+
+  // If starts with 549, remove the "9"
+  if (n.startsWith("549")) {
+    return "54" + n.slice(3);
+  }
+
+  return n;
+}
+
 const verifyToken = (req, res) => {
-  
+  try {
+    const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+    var token = req.query["hub.verify_token"];
+    var challenge = req.query["hub.challenge"];
 
-            try {
-
-              const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
-              var token = req.query["hub.verify_token"];
-              var challenge = req.query["hub.challenge"];
-
-              if (challenge != null && token != null && token === VERIFY_TOKEN){
-                res.send(challenge);
-              }else {
-                res.status(400).send();
-              }
-              
-            } catch (error) {
-              res.status(400).send();
-            }
-
-  
+    if (challenge != null && token != null && token === VERIFY_TOKEN) {
+      res.send(challenge);
+    } else {
+      res.status(400).send();
+    }
+  } catch (error) {
+    res.status(400).send();
+  }
 };
 
 const messageReceived = (req, res) => {
-   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
+  console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
   console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
-  
-  try{
-    var entry = (req.body["entry"])[0];
-    var changes = (entry["changes"])[0];
+
+  try {
+    var entry = req.body["entry"][0];
+    var changes = entry["changes"][0];
     var value = changes["value"];
     const messageObject = value["messages"];
     const messages = messageObject[0];
 
     console.log("📦 Full message object:", JSON.stringify(messages, null, 2));
 
-    
     if (typeof messageObject != "undefined") {
-
       const messages = messageObject[0];
       const text = GetTestUser(messages);
-      var number = messages["from"];
+
       // Original number from incoming message
-      number = messages["from"];
+      var number = messages["from"];
 
-      // ✅ Force to specific number for testing
-      number = "541158827024";
+      // ✅ Normalize number for Argentina
+      number = stripNineForArgentina(number);
       console.log("📤 Sending normalized number:", number);
-      // 🔹 END: Added number normalization for Argentina
 
-      console.log("✅ Final extracted text:", text); 
-      whatsappService.sendMessageWhatsApp("el usuario dijo " + text, number); 
-  }
-    
+      console.log("✅ Final extracted text:", text);
+      whatsappService.sendMessageWhatsApp("el usuario dijo " + text, number);
+    }
 
-    
     res.send("Event Received");
-  }catch(e){
+  } catch (e) {
     myConsole.log(e);
     res.send("Event Received");
-
   }
-  
-  };
+};
 
-
-
-  function GetTestUser(messages) {
+function GetTestUser(messages) {
   let text = "";
   const typeMessage = messages["type"];
 
@@ -100,7 +98,6 @@ const messageReceived = (req, res) => {
 
   return text;
 }
-
 
 module.exports = {
   verifyToken,
