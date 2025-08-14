@@ -2,6 +2,7 @@ const fs = require("fs");
 const { title } = require("process");
 const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
 const whatsappService = require("../services/whatsappService");
+const voiceflowService = require("../services/voiceflowService"); // 👈 NEW: VF integration
 
 console.log("✅ THIS IS THE CLEANED CONTROLLER");
 
@@ -34,40 +35,98 @@ const verifyToken = (req, res) => {
   }
 };
 
-const messageReceived = (req, res) => {
+// 👇 CHANGED: make async to await Voiceflow + sends
+const messageReceived = async (req, res) => {
   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
   console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
 
   try {
-    var entry = req.body["entry"][0];
-    var changes = entry["changes"][0];
-    var value = changes["value"];
-    const messageObject = value["messages"];
-    const messages = messageObject[0];
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const messageObject = value?.messages;
 
+    if (!messageObject?.length) {
+      console.log("No messages in webhook payload");
+      return res.send("Event Received");
+    }
+
+    const messages = messageObject[0];
     console.log("📦 Full message object:", JSON.stringify(messages, null, 2));
 
-    if (typeof messageObject != "undefined") {
-      const messages = messageObject[0];
-      const text = GetTestUser(messages);
+    // Extract user text from message
+    const text = GetTestUser(messages) || "";
+    // Normalize AR number (strip the '9' after 54 if present)
+    let number = stripNineForArgentina(messages["from"]);
 
-      // Original number from incoming message
-      var number = messages["from"];
+    console.log("✅ Final extracted text:", text);
+    console.log("📤 Sending normalized number:", number);
 
-      // ✅ Normalize number for Argentina
-      number = stripNineForArgentina(number);
-      console.log("📤 Sending normalized number:", number);
+    // ===== VOICEFLOW: send user text and get traces back =====
+    try {
+      const traces = await voiceflowService.sendToVoiceflow(
+        number,           // userId (per-user session by phone)
+        text,             // user text
+        { phone: number, locale: "es-AR", channel: "whatsapp" }
+      );
 
-      console.log("✅ Final extracted text:", text);
-      whatsappService.sendMessageWhatsApp("el usuario dijo " + text, number);
+      // Map Voiceflow traces to WhatsApp-compatible messages
+      const waMessages = voiceflowService.mapTracesToWhatsApp(traces);
+
+      if (!waMessages.length) {
+        console.log("Voiceflow returned no messages; sending a default ack.");
+        // Fallback (text-only) if Voiceflow returns nothing:
+        await safeSendText(`Gracias. Recibí: ${text}`, number);
+      } else {
+        // Send each mapped message
+        for (const m of waMessages) {
+          await safeSendPayload(number, m);
+        }
+      }
+    } catch (vfErr) {
+      console.error("Voiceflow error:", vfErr);
+      // Fallback so user still gets a response
+      await safeSendText(`Gracias. Recibí: ${text}`, number);
     }
 
     res.send("Event Received");
   } catch (e) {
-    myConsole.log(e);
+    console.error(e);
     res.send("Event Received");
   }
 };
+
+// Fallback-safe senders (works whether you created sendWhatsAppMessage or still have sendMessageWhatsApp only)
+async function safeSendText(body, number) {
+  try {
+    if (typeof whatsappService.sendWhatsAppMessage === "function") {
+      await whatsappService.sendWhatsAppMessage(number, { type: "text", text: { preview_url: false, body } });
+    } else if (typeof whatsappService.sendMessageWhatsApp === "function") {
+      // your original function signature: (textResponse, number)
+      await whatsappService.sendMessageWhatsApp(body, number);
+    } else {
+      console.warn("No WhatsApp send function found in whatsappService.");
+    }
+  } catch (err) {
+    console.error("safeSendText failed:", err);
+  }
+}
+
+async function safeSendPayload(number, payload) {
+  try {
+    if (typeof whatsappService.sendWhatsAppMessage === "function") {
+      // Generic sender supports text or interactive
+      await whatsappService.sendWhatsAppMessage(number, payload);
+    } else if (payload?.type === "text" && typeof whatsappService.sendMessageWhatsApp === "function") {
+      // Fallback: only text supported by your original function
+      await whatsappService.sendMessageWhatsApp(payload.text?.body || "", number);
+    } else {
+      console.warn("Interactive payload skipped (no generic sender available). Payload:", payload);
+    }
+  } catch (err) {
+    console.error("safeSendPayload failed:", err);
+  }
+}
 
 function GetTestUser(messages) {
   let text = "";
@@ -76,19 +135,18 @@ function GetTestUser(messages) {
   console.log("📌 Detected message type:", typeMessage);
 
   if (typeMessage === "text") {
-    // ✅ This should work if it's a regular message
-    text = messages["text"]["body"];
+    text = messages["text"]["body"] || "";
     console.log("💬 Text message body:", text);
   } else if (typeMessage === "interactive") {
     const interactiveObject = messages["interactive"];
-    const typeInteractive = interactiveObject["type"];
+    const typeInteractive = interactiveObject?.["type"];
 
     console.log("🟡 Interactive message object:", interactiveObject);
 
     if (typeInteractive === "button_reply") {
-      text = interactiveObject["button_reply"]["title"];
+      text = interactiveObject?.["button_reply"]?.["title"] || "";
     } else if (typeInteractive === "list_reply") {
-      text = interactiveObject["list_reply"]["title"];
+      text = interactiveObject?.["list_reply"]?.["title"] || "";
     } else {
       console.log("⚠️ Unknown interactive type");
     }
