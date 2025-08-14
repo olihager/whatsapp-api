@@ -1,14 +1,18 @@
-const fetch = require("node-fetch");
+// src/services/whatsappService.js
 
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
-// Voiceflow config
-const VF_API_KEY = process.env.VOICEFLOW_API_KEY; // Your Voiceflow API key
-const VF_VERSION_ID = process.env.VOICEFLOW_VERSION_ID; // The project version
-const VF_API_URL = `https://general-runtime.voiceflow.com/state/${VF_VERSION_ID}`;
+if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
+  console.warn("⚠️ Missing PHONE_NUMBER_ID or ACCESS_TOKEN env vars.");
+}
 
-// Existing send function to WhatsApp
+/**
+ * Send any WhatsApp payload (text or interactive).
+ * Example payloads:
+ *  - { type: "text", text: { preview_url: false, body: "Hola!" } }
+ *  - { type: "interactive", interactive: { type: "button", body:{text:"..."}, action:{buttons:[...]}}}
+ */
 async function sendWhatsAppMessage(number, payload) {
   const url = `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`;
 
@@ -31,44 +35,29 @@ async function sendWhatsAppMessage(number, payload) {
   console.log("WA SEND status:", res.status);
   console.log("WA SEND body:", text);
 
-  if (!res.ok) throw new Error(`WA send failed ${res.status}: ${text}`);
+  if (!res.ok) {
+    throw new Error(`WA send failed ${res.status}: ${text}`);
+  }
 }
 
-// 🔹 New: send incoming WhatsApp message to Voiceflow
-async function sendToVoiceflow(userId, message) {
-  const res = await fetch(`${VF_API_URL}/user/${userId}/interact`, {
+// (Optional) mark incoming message as read before replying
+async function markAsRead(messageId) {
+  const url = `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`;
+  const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: VF_API_KEY,
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      type: "text",
-      payload: message
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: messageId
     })
   });
-
   if (!res.ok) {
-    throw new Error(`Voiceflow request failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-// 🔹 New: handle WhatsApp → Voiceflow → WhatsApp loop
-async function handleIncomingMessage(fromNumber, messageText) {
-  // Send to Voiceflow
-  const vfResponse = await sendToVoiceflow(fromNumber, messageText);
-
-  // Loop over Voiceflow messages and send to WhatsApp
-  for (const trace of vfResponse) {
-    if (trace.type === "text") {
-      await sendWhatsAppMessage(fromNumber, {
-        type: "text",
-        text: { body: trace.payload.message }
-      });
-    }
+    console.log("markAsRead failed:", await res.text());
   }
 }
 
-module.exports = { sendWhatsAppMessage, handleIncomingMessage };
+module.exports = { sendWhatsAppMessage, markAsRead };
