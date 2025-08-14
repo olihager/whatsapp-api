@@ -8,13 +8,19 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
     throw new Error("VOICEFLOW_VERSION_ID or VOICEFLOW_API_KEY is missing");
   }
 
-  const url = `https://general-runtime.voiceflow.com/state/${VERSION_ID}/user/${encodeURIComponent(userId)}/interact`;
+  const url = `https://general-runtime.voiceflow.com/state/${encodeURIComponent(VERSION_ID)}/user/${encodeURIComponent(userId)}/interact`;
 
-  const payload = [{ type: "text", payload: userText }];
+  // Helpful debug:
+  console.log("VF ▶︎ url:", url);
+  console.log("VF ▶︎ userId:", userId);
+  console.log("VF ▶︎ userText:", userText);
+
+  const payload = [{ type: "text", payload: userText ?? "" }];
 
   const res = await fetch(url, {
     method: "POST",
     headers: {
+      // Most deployments want the raw key. If you get 401, try: `Bearer ${VF_API_KEY}`
       Authorization: VF_API_KEY,
       "Content-Type": "application/json",
       accept: "application/json",
@@ -27,13 +33,18 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
     body: JSON.stringify(payload)
   });
 
-  const body = await res.json().catch(() => ({}));
+  const bodyText = await res.text();
+  let body;
+  try { body = JSON.parse(bodyText); } catch { body = bodyText; }
+
   if (!res.ok) {
-    console.error("Voiceflow error:", res.status, body);
+    console.error("Voiceflow error detail:", res.status, body);
     throw new Error(`Voiceflow API ${res.status}`);
   }
+
   return body; // array of traces
 }
+
 
 function mapTracesToWhatsApp(traces) {
   const outputs = [];
