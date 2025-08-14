@@ -2,7 +2,7 @@ const fs = require("fs");
 const { title } = require("process");
 const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
 const whatsappService = require("../services/whatsappService");
-const voiceflowService = require("../services/voiceflowService"); // 👈 NEW: VF integration
+const voiceflowService = require("../services/voiceflowService"); // VF integration
 
 console.log("✅ THIS IS THE CLEANED CONTROLLER");
 
@@ -22,8 +22,8 @@ function stripNineForArgentina(number) {
 const verifyToken = (req, res) => {
   try {
     const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
-    var token = req.query["hub.verify_token"];
-    var challenge = req.query["hub.challenge"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
 
     if (challenge != null && token != null && token === VERIFY_TOKEN) {
       res.send(challenge);
@@ -35,7 +35,7 @@ const verifyToken = (req, res) => {
   }
 };
 
-// 👇 CHANGED: make async to await Voiceflow + sends
+// 👇 async to await Voiceflow + sends (with launch-then-retry)
 const messageReceived = async (req, res) => {
   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
   console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
@@ -62,20 +62,36 @@ const messageReceived = async (req, res) => {
     console.log("✅ Final extracted text:", text);
     console.log("📤 Sending normalized number:", number);
 
-    // ===== VOICEFLOW: send user text and get traces back =====
     try {
-      const traces = await voiceflowService.sendToVoiceflow(
-        number,           // userId (per-user session by phone)
-        text,             // user text
+      // ===== 1) try sending user text to VF =====
+      let traces = await voiceflowService.sendToVoiceflow(
+        number, // userId
+        text,   // user text
         { phone: number, locale: "es-AR", channel: "whatsapp" }
       );
+      console.log("VF trace types:", traces.map(t => t?.type));
 
-      // Map Voiceflow traces to WhatsApp-compatible messages
-      const waMessages = voiceflowService.mapTracesToWhatsApp(traces);
+      let waMessages = voiceflowService.mapTracesToWhatsApp(traces);
+
+      // ===== 2) if no outputs, LAUNCH then RETRY text =====
+      if (!waMessages.length) {
+        console.log("No VF messages; launching session then retrying…");
+        await voiceflowService.launchVoiceflow(
+          number,
+          { phone: number, locale: "es-AR", channel: "whatsapp" }
+        );
+
+        traces = await voiceflowService.sendToVoiceflow(
+          number,
+          text,
+          { phone: number, locale: "es-AR", channel: "whatsapp" }
+        );
+        console.log("VF trace types (after launch):", traces.map(t => t?.type));
+        waMessages = voiceflowService.mapTracesToWhatsApp(traces);
+      }
 
       if (!waMessages.length) {
-        console.log("Voiceflow returned no messages; sending a default ack.");
-        // Fallback (text-only) if Voiceflow returns nothing:
+        console.log("Still no VF messages; sending fallback.");
         await safeSendText(`Gracias. Recibí: ${text}`, number);
       } else {
         // Send each mapped message
