@@ -36,7 +36,7 @@ const verifyToken = (req, res) => {
   }
 };
 
-// 👇 async to await Voiceflow + sends (with launch-then-retry)
+// 👇 async to await Voiceflow + sends (with restart + launch-then-retry)
 const messageReceived = async (req, res) => {
   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
   console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
@@ -55,26 +55,53 @@ const messageReceived = async (req, res) => {
     const messages = messageObject[0];
     console.log("📦 Full message object:", JSON.stringify(messages, null, 2));
 
-    // Extract user text from message
-    const text = GetTestUser(messages) || "";
-    // Normalize AR number (strip the '9' after 54 if present)
+    // Extract user text + normalize number
+    const text = (GetTestUser(messages) || "").trim();
     let number = stripNineForArgentina(messages["from"]);
 
     console.log("✅ Final extracted text:", text);
     console.log("📤 Sending normalized number:", number);
 
+    // ===== RESTART COMMANDS =====
+    const t = text.toLowerCase();
+    const restartWords = new Set(["start", "reiniciar", "reset", "inicio", "empezar"]);
+    if (restartWords.has(t)) {
+      try {
+        console.log("🔄 Restart requested. Launching VF session for:", number);
+        // Launch (start from Start block) and return greeting/choices
+        let traces = await voiceflowService.launchVoiceflow(
+          number,
+          { phone: number, locale: "es-AR", channel: "whatsapp" }
+        );
+        console.log("VF trace types (after explicit launch):", traces.map(tr => tr?.type));
+        const waMsgs = voiceflowService.mapTracesToWhatsApp(traces);
+
+        if (waMsgs.length) {
+          for (const m of waMsgs) await safeSendPayload(number, m);
+        } else {
+          // Extremely unlikely after a proper Start block, but keep a fallback
+          await safeSendText("Reiniciado. ¿Cómo te ayudo?", number);
+        }
+      } catch (err) {
+        console.error("VF launch error:", err);
+        await safeSendText("Hubo un problema al reiniciar. Intenta de nuevo.", number);
+      }
+      return res.send("Event Received"); // done for this webhook call
+    }
+
+    // ===== NORMAL FLOW =====
     try {
-      // ===== 1) try sending user text to VF =====
+      // 1) try sending user text to VF
       let traces = await voiceflowService.sendToVoiceflow(
-        number, // userId
-        text,   // user text
+        number,
+        text,
         { phone: number, locale: "es-AR", channel: "whatsapp" }
       );
-      console.log("VF trace types:", traces.map(t => t?.type));
+      console.log("VF trace types:", traces.map(tr => tr?.type));
 
       let waMessages = voiceflowService.mapTracesToWhatsApp(traces);
 
-      // ===== 2) if no outputs, LAUNCH then RETRY text =====
+      // 2) if no outputs, LAUNCH then RETRY text
       if (!waMessages.length) {
         console.log("No VF messages; launching session then retrying…");
         await voiceflowService.launchVoiceflow(
@@ -87,7 +114,7 @@ const messageReceived = async (req, res) => {
           text,
           { phone: number, locale: "es-AR", channel: "whatsapp" }
         );
-        console.log("VF trace types (after launch):", traces.map(t => t?.type));
+        console.log("VF trace types (after launch):", traces.map(tr => tr?.type));
         waMessages = voiceflowService.mapTracesToWhatsApp(traces);
       }
 
@@ -95,14 +122,12 @@ const messageReceived = async (req, res) => {
         console.log("Still no VF messages; sending fallback.");
         await safeSendText(`Gracias. Recibí: ${text}`, number);
       } else {
-        // Send each mapped message
         for (const m of waMessages) {
           await safeSendPayload(number, m);
         }
       }
     } catch (vfErr) {
       console.error("Voiceflow error:", vfErr);
-      // Fallback so user still gets a response
       await safeSendText(`Gracias. Recibí: ${text}`, number);
     }
 
@@ -112,6 +137,7 @@ const messageReceived = async (req, res) => {
     res.send("Event Received");
   }
 };
+
 
 // Fallback-safe senders (works whether you created sendWhatsAppMessage or still have sendMessageWhatsApp only)
 async function safeSendText(body, number) {
