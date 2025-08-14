@@ -92,7 +92,7 @@ function mapTracesToWhatsApp(traces) {
   for (const t of traces) {
     if (!t) continue;
 
-    // Handle text or speak traces
+    // text / speak -> WhatsApp text
     if ((t.type === "text" || t.type === "speak") && t.payload?.message) {
       outputs.push({
         type: "text",
@@ -101,48 +101,47 @@ function mapTracesToWhatsApp(traces) {
       continue;
     }
 
-    // Handle choice traces with multiple possible payload shapes
+    // choice -> (1) text with prompt, (2) interactive buttons
     if (t.type === "choice" && t.payload) {
       const p = t.payload || {};
 
-      // Variations we’ve seen: choices[], buttons[], options[]
+      // Common list shapes
       const list =
         Array.isArray(p.choices) ? p.choices :
         Array.isArray(p.buttons) ? p.buttons :
         Array.isArray(p.options) ? p.options :
         [];
 
-      // If no list, skip
       if (!list.length) continue;
 
-      // Extract a prompt from common fields
+      // Prompt text the user should see
       const prompt =
         String(p.prompt || p.text || p.message || "Elige una opción:").slice(0, 1024);
 
-      // Convert to WA buttons (max 3)
+      // (A) Send the prompt as a separate text message FIRST
+      outputs.push({
+        type: "text",
+        text: { preview_url: false, body: prompt }
+      });
+
+      // Build up to 3 WA buttons
       const buttons = list.slice(0, 3).map((item, i) => {
         const id =
           String(item.id || item.name || item.value || item.label || `btn_${i}`).slice(0, 256);
         const title =
           String(item.title || item.label || item.name || `Opción ${i + 1}`).slice(0, 20);
-
-        return {
-          type: "reply",
-          reply: { id, title }
-        };
+        return { type: "reply", reply: { id, title } };
       });
 
-      // Only push if we actually have at least 1 button
-      if (buttons.length) {
-        outputs.push({
-          type: "interactive",
-          interactive: {
-            type: "button",
-            body: { text: prompt },
-            action: { buttons }
-          }
-        });
-      }
+      // (B) Then send the interactive with a short body
+      outputs.push({
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: { text: "Selecciona una opción:" }, // short label for the buttons
+          action: { buttons }
+        }
+      });
     }
   }
 
