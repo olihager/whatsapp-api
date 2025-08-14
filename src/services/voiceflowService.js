@@ -1,16 +1,20 @@
-// src/services/voiceflowService.js
-
+// ---- add this to src/services/voiceflowService.js ----
 async function launchVoiceflow(userId, variables = {}) {
   const VERSION_ID = process.env.VOICEFLOW_VERSION_ID;
   const VF_API_KEY = process.env.VOICEFLOW_API_KEY;
 
+  if (!VERSION_ID || !VF_API_KEY) {
+    throw new Error("VOICEFLOW_VERSION_ID or VOICEFLOW_API_KEY is missing");
+  }
+
   const url = `https://general-runtime.voiceflow.com/state/${encodeURIComponent(VERSION_ID)}/user/${encodeURIComponent(userId)}/interact`;
+
   const payload = { type: "launch" };
 
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: VF_API_KEY, // if you ever see 401, try `Bearer ${VF_API_KEY}`
+      Authorization: VF_API_KEY, // if you ever see 401, try: `Bearer ${VF_API_KEY}`
       "Content-Type": "application/json",
       accept: "application/json",
       "x-voiceflow-metadata": JSON.stringify({
@@ -24,18 +28,14 @@ async function launchVoiceflow(userId, variables = {}) {
 
   const bodyText = await res.text();
   let body; try { body = JSON.parse(bodyText); } catch { body = bodyText; }
+
   if (!res.ok) {
     console.error("Voiceflow launch error:", res.status, body);
     throw new Error(`Voiceflow launch ${res.status}`);
   }
+
   return body; // array of traces (usually your greeting)
 }
-
-module.exports = {
-  sendToVoiceflow,
-  mapTracesToWhatsApp,
-  launchVoiceflow
-};
 
 
 
@@ -125,7 +125,10 @@ function mapTracesToWhatsApp(traces) {
   return outputs;
 }
 
+
+
 module.exports = {
   sendToVoiceflow,
-  mapTracesToWhatsApp
+  mapTracesToWhatsApp,
+  launchVoiceflow,   // <-- ensure this line is present
 };
