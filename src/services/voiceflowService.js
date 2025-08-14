@@ -92,33 +92,57 @@ function mapTracesToWhatsApp(traces) {
   for (const t of traces) {
     if (!t) continue;
 
-    // Handle text or speak traces as WhatsApp text
+    // Handle text or speak traces
     if ((t.type === "text" || t.type === "speak") && t.payload?.message) {
       outputs.push({
         type: "text",
-        text: { preview_url: false, body: t.payload.message }
+        text: { preview_url: false, body: String(t.payload.message).slice(0, 4096) }
       });
+      continue;
     }
 
-    // Choice traces -> WhatsApp buttons (max 3)
-    if (t.type === "choice" && Array.isArray(t.payload?.choices) && t.payload.choices.length) {
-      const buttons = t.payload.choices.slice(0, 3).map((choice, i) => ({
-        type: "reply",
-        reply: {
-          id: String(choice.name || choice.label || `btn_${i}`),
-          title: String(choice.name || choice.label || `Opción ${i + 1}`).slice(0, 20)
-        }
-      }));
+    // Handle choice traces with multiple possible payload shapes
+    if (t.type === "choice" && t.payload) {
+      const p = t.payload || {};
 
-      const promptText = String(t.payload?.prompt || "Elige una opción:");
-      outputs.push({
-        type: "interactive",
-        interactive: {
-          type: "button",
-          body: { text: promptText.slice(0, 1024) },
-          action: { buttons }
-        }
+      // Variations we’ve seen: choices[], buttons[], options[]
+      const list =
+        Array.isArray(p.choices) ? p.choices :
+        Array.isArray(p.buttons) ? p.buttons :
+        Array.isArray(p.options) ? p.options :
+        [];
+
+      // If no list, skip
+      if (!list.length) continue;
+
+      // Extract a prompt from common fields
+      const prompt =
+        String(p.prompt || p.text || p.message || "Elige una opción:").slice(0, 1024);
+
+      // Convert to WA buttons (max 3)
+      const buttons = list.slice(0, 3).map((item, i) => {
+        const id =
+          String(item.id || item.name || item.value || item.label || `btn_${i}`).slice(0, 256);
+        const title =
+          String(item.title || item.label || item.name || `Opción ${i + 1}`).slice(0, 20);
+
+        return {
+          type: "reply",
+          reply: { id, title }
+        };
       });
+
+      // Only push if we actually have at least 1 button
+      if (buttons.length) {
+        outputs.push({
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: { text: prompt },
+            action: { buttons }
+          }
+        });
+      }
     }
   }
 
