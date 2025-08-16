@@ -68,7 +68,8 @@ const messageReceived = async (req, res) => {
         console.log("🔄 Restart requested. Deleting and launching session for:", number);
 
         // 👇 THIS LINE ENSURES A FRESH START
-        await voiceflowService.deleteUser(number);
+        await voiceflowService.deleteUserSession(number);
+
 
         // Launch fresh session
         let traces = await voiceflowService.launchVoiceflow(

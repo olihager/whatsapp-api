@@ -84,29 +84,35 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
 }
 
 
-async function deleteUser(userId) {
+async function deleteUserSession(userId) {
   const VF_API_KEY = process.env.VOICEFLOW_API_KEY;
-  if (!VF_API_KEY) throw new Error("Missing VOICEFLOW_API_KEY");
-
   const url = `https://general-runtime.voiceflow.com/state/user/${encodeURIComponent(userId)}/interactions`;
 
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers: {
-      Authorization: VF_API_KEY,
-      accept: "application/json"
+  try {
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        Authorization: VF_API_KEY,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.status === 404) {
+      console.warn("🟡 No existing session to delete (already cleared).");
+      return;
     }
-  });
 
-  if (!res.ok) {
-    const body = await res.text();
-    console.error("❌ Error deleting user session:", res.status, body);
-    throw new Error("Failed to delete Voiceflow session");
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Failed to delete session: ${res.status} - ${body}`);
+    }
+
+    console.log("✅ Voiceflow session deleted.");
+  } catch (err) {
+    console.error("❌ Error deleting user session:", err);
+    throw err; // You can choose to NOT throw here if you want to ignore silently
   }
-
-  console.log("🗑️ Voiceflow session deleted for user:", userId);
 }
-
 
 
 
@@ -180,5 +186,5 @@ module.exports = {
   sendToVoiceflow,
   mapTracesToWhatsApp,
   launchVoiceflow,
-  deleteUser    // <-- ensure this line is present
+  deleteUserSession    // <-- ensure this line is present
 };
