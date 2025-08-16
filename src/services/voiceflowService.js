@@ -84,6 +84,32 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
 }
 
 
+async function deleteUser(userId) {
+  const VF_API_KEY = process.env.VOICEFLOW_API_KEY;
+  if (!VF_API_KEY) throw new Error("Missing VOICEFLOW_API_KEY");
+
+  const url = `https://general-runtime.voiceflow.com/state/user/${encodeURIComponent(userId)}/interactions`;
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: VF_API_KEY,
+      accept: "application/json"
+    }
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error("❌ Error deleting user session:", res.status, body);
+    throw new Error("Failed to delete Voiceflow session");
+  }
+
+  console.log("🗑️ Voiceflow session deleted for user:", userId);
+}
+
+
+
+
 
 function mapTracesToWhatsApp(traces) {
   const outputs = [];
@@ -153,5 +179,6 @@ function mapTracesToWhatsApp(traces) {
 module.exports = {
   sendToVoiceflow,
   mapTracesToWhatsApp,
-  launchVoiceflow,   // <-- ensure this line is present
+  launchVoiceflow,
+  deleteUser    // <-- ensure this line is present
 };
