@@ -36,7 +36,6 @@ const verifyToken = (req, res) => {
   }
 };
 
-// 👇 async to await Voiceflow + sends (with restart + launch-then-retry)
 const messageReceived = async (req, res) => {
   console.log("📢 ACCESS_TOKEN:", process.env.ACCESS_TOKEN);
   console.log("📢 PHONE_NUMBER_ID:", process.env.PHONE_NUMBER_ID);
@@ -55,7 +54,6 @@ const messageReceived = async (req, res) => {
     const messages = messageObject[0];
     console.log("📦 Full message object:", JSON.stringify(messages, null, 2));
 
-    // Extract user text + normalize number
     const text = (GetTestUser(messages) || "").trim();
     let number = stripNineForArgentina(messages["from"]);
 
@@ -67,8 +65,12 @@ const messageReceived = async (req, res) => {
     const restartWords = new Set(["start", "reiniciar", "reset", "inicio", "empezar"]);
     if (restartWords.has(t)) {
       try {
-        console.log("🔄 Restart requested. Launching VF session for:", number);
-        // Launch (start from Start block) and return greeting/choices
+        console.log("🔄 Restart requested. Deleting and launching session for:", number);
+
+        // 👇 THIS LINE ENSURES A FRESH START
+        await voiceflowService.deleteUser(number);
+
+        // Launch fresh session
         let traces = await voiceflowService.launchVoiceflow(
           number,
           { phone: number, locale: "es-AR", channel: "whatsapp" }
@@ -79,19 +81,17 @@ const messageReceived = async (req, res) => {
         if (waMsgs.length) {
           for (const m of waMsgs) await safeSendPayload(number, m);
         } else {
-          // Extremely unlikely after a proper Start block, but keep a fallback
           await safeSendText("Reiniciado. ¿Cómo te ayudo?", number);
         }
       } catch (err) {
         console.error("VF launch error:", err);
         await safeSendText("Hubo un problema al reiniciar. Intenta de nuevo.", number);
       }
-      return res.send("Event Received"); // done for this webhook call
+      return res.send("Event Received");
     }
 
     // ===== NORMAL FLOW =====
     try {
-      // 1) try sending user text to VF
       let traces = await voiceflowService.sendToVoiceflow(
         number,
         text,
@@ -101,9 +101,9 @@ const messageReceived = async (req, res) => {
 
       let waMessages = voiceflowService.mapTracesToWhatsApp(traces);
 
-      // 2) if no outputs, LAUNCH then RETRY text
       if (!waMessages.length) {
         console.log("No VF messages; launching session then retrying…");
+
         await voiceflowService.launchVoiceflow(
           number,
           { phone: number, locale: "es-AR", channel: "whatsapp" }
