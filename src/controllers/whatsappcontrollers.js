@@ -65,18 +65,10 @@ const messageReceived = async (req, res) => {
     const restartWords = new Set(["start", "reiniciar", "reset", "inicio", "empezar"]);
     if (restartWords.has(t)) {
       try {
-        console.log("🔄 Restart requested. Deleting and launching session for:", number);
+        console.log("🔄 Restart requested. Launching session for:", number);
 
-       // Ensure session is created first
-      await voiceflowService.sendToVoiceflow(number, "", { phone: number, locale: "es-AR", channel: "whatsapp" });
-
-      // Then try deleting
-      await voiceflowService.deleteUserSession(number);
-
-
-
-        // Launch fresh session
-        let traces = await voiceflowService.launchVoiceflow(
+        // Skip deleteUserSession and sendToVoiceflow("")
+        const traces = await voiceflowService.launchVoiceflow(
           number,
           { phone: number, locale: "es-AR", channel: "whatsapp" }
         );
@@ -97,34 +89,17 @@ const messageReceived = async (req, res) => {
 
     // ===== NORMAL FLOW =====
     try {
-      let traces = await voiceflowService.sendToVoiceflow(
+      const traces = await voiceflowService.sendToVoiceflow(
         number,
         text,
         { phone: number, locale: "es-AR", channel: "whatsapp" }
       );
       console.log("VF trace types:", traces.map(tr => tr?.type));
 
-      let waMessages = voiceflowService.mapTracesToWhatsApp(traces);
+      const waMessages = voiceflowService.mapTracesToWhatsApp(traces);
 
       if (!waMessages.length) {
-        console.log("No VF messages; launching session then retrying…");
-
-        await voiceflowService.launchVoiceflow(
-          number,
-          { phone: number, locale: "es-AR", channel: "whatsapp" }
-        );
-
-        traces = await voiceflowService.sendToVoiceflow(
-          number,
-          text,
-          { phone: number, locale: "es-AR", channel: "whatsapp" }
-        );
-        console.log("VF trace types (after launch):", traces.map(tr => tr?.type));
-        waMessages = voiceflowService.mapTracesToWhatsApp(traces);
-      }
-
-      if (!waMessages.length) {
-        console.log("Still no VF messages; sending fallback.");
+        console.log("❌ No VF messages returned; NOT launching fallback session.");
         await safeSendText(`Gracias. Recibí: ${text}`, number);
       } else {
         for (const m of waMessages) {
@@ -142,6 +117,7 @@ const messageReceived = async (req, res) => {
     res.send("Event Received");
   }
 };
+
 
 
 // Fallback-safe senders (works whether you created sendWhatsAppMessage or still have sendMessageWhatsApp only)
