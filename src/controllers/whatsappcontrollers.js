@@ -67,8 +67,12 @@ const messageReceived = async (req, res) => {
       try {
         console.log("🔄 Restart requested. Deleting and launching session for:", number);
 
-        // 👇 THIS LINE ENSURES A FRESH START
-        await voiceflowService.deleteUserSession(number);
+       // Ensure session is created first
+      await voiceflowService.sendToVoiceflow(number, "", { phone: number, locale: "es-AR", channel: "whatsapp" });
+
+      // Then try deleting
+      await voiceflowService.deleteUser(number);
+
 
 
         // Launch fresh session
