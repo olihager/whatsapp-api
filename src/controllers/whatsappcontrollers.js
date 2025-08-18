@@ -71,7 +71,7 @@ const messageReceived = async (req, res) => {
       await voiceflowService.sendToVoiceflow(number, "", { phone: number, locale: "es-AR", channel: "whatsapp" });
 
       // Then try deleting
-      await voiceflowService.deleteUser(number);
+      await voiceflowService.deleteUserSession(number);
 
 
 
