@@ -52,13 +52,25 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
 
   const url = `https://general-runtime.voiceflow.com/state/${encodeURIComponent(VERSION_ID)}/user/${encodeURIComponent(userId)}/interact`;
 
-  // ✅ send an OBJECT, not an array
   const payload = { type: "text", payload: userText ?? "" };
+
+  console.log("📤 Sending to Voiceflow");
+  console.log({
+    userId,
+    userText,
+    url,
+    payload,
+    metadata: {
+      locale: variables.locale || "es-AR",
+      channel: "whatsapp",
+      phone: variables.phone || userId
+    }
+  });
 
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: VF_API_KEY,            // if you ever get 401, try: `Bearer ${VF_API_KEY}`
+      Authorization: VF_API_KEY,
       "Content-Type": "application/json",
       accept: "application/json",
       "x-voiceflow-metadata": JSON.stringify({
@@ -74,14 +86,17 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
   let body;
   try { body = JSON.parse(bodyText); } catch { body = bodyText; }
 
+  console.log("✅ Voiceflow responded:");
+  console.dir(body, { depth: null });
+
   if (!res.ok) {
-    console.error("Voiceflow error:", res.status, body);
+    console.error("❌ Voiceflow error:", res.status, body);
     throw new Error(`Voiceflow API ${res.status}`);
   }
 
-  // Voiceflow still returns an ARRAY of traces here
   return body;
 }
+
 
 
 async function deleteUserSession(userId) {
