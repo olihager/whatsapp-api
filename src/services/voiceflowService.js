@@ -1,5 +1,5 @@
 // ---- add this to src/services/voiceflowService.js ----
-async function launchVoiceflow(userId, variables = {}) {
+/*async function launchVoiceflow(userId, variables = {}) {
   const VERSION_ID = process.env.VOICEFLOW_VERSION_ID;
   const VF_API_KEY = process.env.VOICEFLOW_API_KEY;
 
@@ -35,7 +35,7 @@ async function launchVoiceflow(userId, variables = {}) {
   }
 
   return body; // array of traces (usually your greeting)
-}
+}*/
 
 
 
@@ -99,7 +99,7 @@ async function sendToVoiceflow(userId, userText, variables = {}) {
 
 
 
-async function deleteUserSession(userId) {
+/*async function deleteUserSession(userId) {
   const VF_API_KEY = process.env.VOICEFLOW_API_KEY;
   const url = `https://general-runtime.voiceflow.com/state/user/${encodeURIComponent(userId)}/interactions`;
 
@@ -127,7 +127,7 @@ async function deleteUserSession(userId) {
     console.error("❌ Error deleting user session:", err);
     throw err; // You can choose to NOT throw here if you want to ignore silently
   }
-}
+}*/
 
 
 
@@ -200,6 +200,6 @@ function mapTracesToWhatsApp(traces) {
 module.exports = {
   sendToVoiceflow,
   mapTracesToWhatsApp,
-  launchVoiceflow,
-  deleteUserSession    // <-- ensure this line is present
+  //launchVoiceflow,
+  //deleteUserSession    // <-- ensure this line is present
 };
